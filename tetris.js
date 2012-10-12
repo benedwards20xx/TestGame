@@ -1,25 +1,47 @@
-var _canvas = null;
-var _buffer = null;
-var canvas = null;
-var buffer = null;
+var canvas;
+var context;
+// single block has size: width == 30 pxl, height == 30 pxl
+var numRows = 18;
+var numCols = 10;
+
+// grid defined x by y, aka col by row
+var gridArray = new Array();
 
 function Game(){
     this.gameLoop = null;
     var self = this;
     
     this.Init = function(){
-        _canvas = document.getElementById('canvas');
-        if (_canvas && _canvas.getContext){
-            canvas = _canvas.getContext('2d');
-            
-            _buffer = document.createElement('canvas');
-            _buffer.width = _canvas.width;
-            _buffer.height = _canvas.height;
-            buffer = _buffer.getContext('2d');
-            
-            buffer.strokeStyle = "rgb(255, 255, 255)";
-            buffer.fillStyle = "rgb(255, 255, 255)";
-            buffer.font = "bold 25px sans-serif";
+        canvas = document.getElementById("tCanvas");
+        context = canvas.getContext("2d");
+        //context.fillStyle="#FF0000";
+        //context.fillRect(0,0,150,75);
+        
+        var cRow = (canvas.height/numRows);
+        for(var i = 1; i < numRows; i++) {
+            //draw lines horiz to see all rows in grid
+            context.beginPath();
+            context.moveTo(0, cRow * i);
+            context.lineTo(canvas.width, cRow * i);
+            context.closePath();
+            context.stroke();
+        }
+        
+        var cCol = (canvas.width/numCols);
+        for(var i = 1; i < numCols; i++) {
+            //draw lines vert to see all cols in grid
+            context.beginPath();
+            context.moveTo(cCol * i, 0);
+            context.lineTo(cCol * i, canvas.height);
+            context.closePath();
+            context.stroke();
+        }
+        
+        // set all values in array grid === 0
+        for(var i = 0; i < numCols; i++) {
+            for(var j = 0; j < numRows; j++) {
+                gridArray[i][j] = 0;
+            }
         }
     }
     
