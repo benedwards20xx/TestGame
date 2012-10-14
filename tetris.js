@@ -1,71 +1,166 @@
-var canvas;
-var context;
 // single block has size: width == 30 pxl, height == 30 pxl
-var numRows = 18;
-var numCols = 10;
+var NUM_COLS = 10;
+var NUM_ROWS = 20;
 
 // grid defined x by y, aka col by row
-var gridArray = new Array();
+var grid = [];
 
-function Game(){
-    this.gameLoop = null;
-    var self = this;
-    
-    this.Init = function(){
-        canvas = document.getElementById("tCanvas");
-        context = canvas.getContext("2d");
-        //context.fillStyle="#FF0000";
-        //context.fillRect(0,0,150,75);
-        
-        var cRow = (canvas.height/numRows);
-        for(var i = 1; i < numRows; i++) {
-            //draw lines horiz to see all rows in grid
-            context.beginPath();
-            context.moveTo(0, cRow * i);
-            context.lineTo(canvas.width, cRow * i);
-            context.closePath();
-            context.stroke();
-        }
-        
-        var cCol = (canvas.width/numCols);
-        for(var i = 1; i < numCols; i++) {
-            //draw lines vert to see all cols in grid
-            context.beginPath();
-            context.moveTo(cCol * i, 0);
-            context.lineTo(cCol * i, canvas.height);
-            context.closePath();
-            context.stroke();
-        }
-        
-        // set all values in array grid === 0
-        for(var i = 0; i < numCols; i++) {
-            for(var j = 0; j < numRows; j++) {
-                gridArray[i][j] = 0;
+var curBlock;
+var curX;
+var curY;
+
+var blocks = [
+    [1, 1, 1, 1],
+    [1, 1, 0, 0, 
+     1, 1],
+    [0, 1, 0, 0, 
+     1, 1, 1],
+    [0, 1, 1, 0, 
+     1, 1],
+    [1, 1, 0, 0, 
+     0, 1, 1],
+    [1, 1, 1, 0, 
+     0, 0, 1]
+    [1, 1, 1, 0, 
+     1]
+];
+
+var colors = [
+	'cyan', 'yellow', 'purple', 'green', 'red', 'blue', 'orange'
+];
+
+function newBlock() {
+    var num = Math.floor(Math.random() * blocks.length );
+    var block = blocks[num];
+
+    curBlock = [];
+    for (var y = 0; y < 4; ++y) {
+        curBlock[y] = [];
+        for (var x = 0; x < 4; ++x) {
+            var t = 4 * y + x;
+            if (typeof block[t] != 'undefined' && block[t]) {
+                curBlock[y][x] = num + 1;
+            } else {
+                curBlock[y][x] = 0;
             }
         }
     }
-    
-    this.Run = function(){        
-        if(canvas != null){
-            self.gameLoop = setInterval(self.Loop, 50);
+    curX = 5;
+    curY = 0;
+}
+
+function init() {
+    for (var y = 0; y < NUM_ROWS; ++y ) {
+        grid[y] = [];
+        for (var x = 0; x < NUM_COLS; ++x ) {
+            grid[y][x] = 0;
         }
-            
-    }
-    
-    this.Update = function(){
-        // Update Objects
-    }
-    
-    this.Draw = function(){
-        buffer.clearRect(0, 0, _buffer.width, _buffer.height);
-        canvas.clearRect(0, 0, _canvas.width, _canvas.height);
-        
-        //Draw Code
-        canvas.drawImage(_buffer, 0, 0);
-    }
-    
-    this.Loop = function(){
-        self.Update();
-        self.Draw();    
     }
 }
+
+function tick() {
+    if ( valid(0, 1) ) {
+        ++curY;
+    } else {
+        freeze();
+        clearLines();
+        newBlock();
+    }
+}
+
+function freeze() {
+    for (var y = 0; y < 4; ++y ) {
+        for (var x = 0; x < 4; ++x ) {
+            if (curBlock[y][x]) {
+                grid[y + curY][x + curX] = curBlock[y][x];
+            }
+        }
+    }
+}
+
+function clearLines() {
+    for (var y = NUM_ROWS - 1; y >= 0; --y) {
+        var thisRow = true;
+        for (var x = 0; x < NUM_COLS; ++x) {
+            if (grid[y][x] == 0) {
+                thisRow = false;
+                break;
+            }
+        }
+        if (thisRow) {
+            for (var newY = y; newY > 0; --newY) {
+                for (var x = 0; x < NUM_COLS; ++x) {
+                    grid[newY][x] = grid[newY - 1][x];
+                }
+            }
+            ++y;
+        }
+    }
+}
+
+function valid(offsetX, offsetY, newCurBlock) {
+    offsetX = offsetX || 0;
+    offsetY = offsetY || 0;
+    offsetX = curX + offsetX;
+    offsetY = curY + offsetY;
+    newCurBlock = newCurBlock || curBlock;
+
+    for (var y = 0; y < 4; ++y ) {
+        for (var x = 0; x < 4; ++x ) {
+            if (newCurBlock[y][x]) {
+                if ( typeof grid[y + offsetY] == 'undefined' 
+                    || typeof grid[y + offsetY][x + offsetX] == 'undefined' 
+                    || grid[y + offsetY][x + offsetX] 
+                    || x + offsetX < 0 
+                    || y + offsetY >= NUM_ROWS 
+                    || x + offsetX >= NUM_COLS) {
+                        return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+function doKeyPress(event) {
+    switch (event.keyCode) {
+        case 37: //left
+            if (valid(-1)) {
+                --curX;
+            }
+            break;
+        case 39: //right
+            if (valid(1)) {
+                ++curX;
+            }
+            break;
+        case 40: //down
+            if (valid(0, 1)) {
+                ++curY;
+            }
+            break;
+        case 38: //up
+            var rotated = rotate(curBlock);
+            if (valid(0, 0, rotated)) {
+                curBlock = rotated;
+            }
+            break;
+    }
+}
+
+function rotate(curBlock) {
+    var newCurBlock = [];
+    for (var y = 0; y < 4; ++y) {
+        newCurBlock[y] = [];
+        for (var x = 0; x < 4; ++x) {
+            newCurBlock[y][x] = curBlock[3 - x][y];
+        }
+    }
+    return newCurBlock;
+}
+
+
+init();
+window.addEventListener('keydown',doKeyPress,true);
+newBlock();
+setInterval(tick, 250);
